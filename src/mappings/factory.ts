@@ -8,6 +8,8 @@ import { Exchange as ExchangeContract } from '../types/templates'
 import { zeroBD, zeroBigInt, oneBigInt, isNullEthValue } from '../helpers'
 
 function hardcodeExchange(exchangeAddress: string, tokenAddress: Address, timestamp: i32): void {
+  log.debug('mybug address is : {}', [tokenAddress.toHexString()])
+
   const exchange = new Exchange(exchangeAddress) as Exchange
   exchange.tokenAddress = tokenAddress
 
@@ -58,7 +60,7 @@ function hardcodeExchange(exchangeAddress: string, tokenAddress: Address, timest
       }
     }
   } else {
-    symbolValue = symbolResult.value
+    symbolValue = symbolResult.value // breaks on current deploy
   }
   exchange.tokenSymbol = symbolValue
 
@@ -100,6 +102,8 @@ function hardcodeExchange(exchangeAddress: string, tokenAddress: Address, timest
 export function handleNewExchange(event: NewExchange): void {
   let factory = Uniswap.load('1')
 
+  const block = event.block.number.toI32()
+
   // if no factory yet, set up blank initial
   if (factory == null) {
     factory = new Uniswap('1')
@@ -120,6 +124,6 @@ export function handleNewExchange(event: NewExchange): void {
   factory.exchangeCount = factory.exchangeCount + 1
   factory.save()
 
-  hardcodeExchange(event.params.exchange.toHexString(), event.params.token, event.block.timestamp.toI32()) // TODO - don't hard code, after we have the fix
+  hardcodeExchange(event.params.exchange.toHexString(), event.params.token, event.block.timestamp.toI32())
   ExchangeContract.create(event.params.exchange)
 }
