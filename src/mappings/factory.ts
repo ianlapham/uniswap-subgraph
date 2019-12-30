@@ -102,8 +102,6 @@ function hardcodeExchange(exchangeAddress: string, tokenAddress: Address, timest
 export function handleNewExchange(event: NewExchange): void {
   let factory = Uniswap.load('1')
 
-  const block = event.block.number.toI32()
-
   // if no factory yet, set up blank initial
   if (factory == null) {
     factory = new Uniswap('1')
