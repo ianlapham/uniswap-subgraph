@@ -2,14 +2,11 @@ import { BigDecimal, Address } from '@graphprotocol/graph-ts'
 import { NewExchange } from '../types/Factory/Factory'
 import { Uniswap, Exchange } from '../types/schema'
 import { Exchange as ExchangeContract } from '../types/templates'
-import { hardcodedExchanges } from './hardcodedExchanges'
-import { zeroBD, zeroBigInt, oneBigInt } from '../helpers'
+import { zeroBD, zeroBigInt, oneBigInt, fetchTokenSymbol, fetchTokenName, fetchTokenDecimals } from '../helpers'
 
 function hardcodeExchange(exchangeAddress: string, tokenAddress: Address, timestamp: i32): void {
   const exchange = new Exchange(exchangeAddress) as Exchange
   exchange.tokenAddress = tokenAddress
-
-  const tokenAddressStringed = tokenAddress.toHexString()
 
   exchange.fee = BigDecimal.fromString('0.003')
   exchange.version = 1
@@ -42,29 +39,22 @@ function hardcodeExchange(exchangeAddress: string, tokenAddress: Address, timest
   exchange.weightedAvgPriceUSD = zeroBD()
   exchange.tokenHolders = []
 
-  for (let i = 0; i < hardcodedExchanges.length; i++) {
-    if (tokenAddressStringed.toString() == hardcodedExchanges[i].tokenAddress.toString()) {
-      exchange.tokenSymbol = hardcodedExchanges[i].symbol
-      exchange.tokenName = hardcodedExchanges[i].name
-      exchange.tokenDecimals = hardcodedExchanges[i].tokenDecimals
-      break
-    } else {
-      exchange.tokenSymbol = 'unknown'
-      exchange.tokenName = 'unknown'
-      exchange.tokenDecimals = null
-    }
-  }
+  exchange.tokenSymbol = fetchTokenSymbol(tokenAddress)
+  exchange.tokenName = fetchTokenName(tokenAddress)
+  exchange.tokenDecimals = fetchTokenDecimals(tokenAddress)
 
   // only save for tokens with non null decimals
-  if (exchange.tokenDecimals !== null) {
-    // add the exchange for the derived relationship
-    const uniswap = Uniswap.load('1')
-    const currentExchanges = uniswap.exchanges
-    currentExchanges.push(exchange.id)
-    uniswap.exchanges = currentExchanges
-    uniswap.save()
-    exchange.save()
+  if (exchange.tokenDecimals === null) {
+    return
   }
+
+  // add the exchange for the derived relationship
+  const uniswap = Uniswap.load('1')
+  const currentExchanges = uniswap.exchanges
+  currentExchanges.push(exchange.id)
+  uniswap.exchanges = currentExchanges
+  uniswap.save()
+  exchange.save()
 }
 
 export function handleNewExchange(event: NewExchange): void {
